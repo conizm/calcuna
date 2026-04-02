@@ -11,15 +11,18 @@
     <link rel="manifest" href="manifest.json">
     
     <!-- Favicon & App Icons -->
-    <link rel="icon" type="image/png" sizes="192x192" href="calcuna_logo_favi.png">
-    <link rel="apple-touch-icon" href="calcuna_logo_favi">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
     
     <!-- OGP (Open Graph Protocol) -->
     <meta property="og:title" content="calcuna">
     <meta property="og:description" content="A minimal, quiet calculator and converter.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://conizm.cc/calcuna/">
-    <meta property="og:image" content="https://conizm.cc/calcuna/calcuna_logo_ogp">
+    <meta property="og:url" content="https://[YOUR_GITHUB_ID].github.io/[YOUR_REPO_NAME]/">
+    <meta property="og:image" content="https://[YOUR_GITHUB_ID].github.io/[YOUR_REPO_NAME]/og-image.png">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
 
     <title>calcuna</title>
     
@@ -69,8 +72,8 @@
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen w-screen flex flex-col overflow-hidden selection:bg-slate-200">
 
-    <!-- タブメニュー -->
-    <div class="flex justify-center pt-10 pb-4 px-6 shrink-0 bg-slate-50">
+    <!-- タブメニュー (上部の余白を約半分に縮小し、セーフエリアを考慮) -->
+    <div class="flex justify-center pt-[max(1.25rem,env(safe-area-inset-top))] pb-3 px-6 shrink-0 bg-slate-50">
         <div class="bg-slate-200/70 p-1 rounded-full flex gap-1 w-full max-w-sm">
             <button id="tab-calc" class="flex-1 py-2 text-sm font-medium rounded-full bg-white shadow-sm transition-all text-slate-800" onclick="switchTab('calc')">Calc</button>
             <button id="tab-conv" class="flex-1 py-2 text-sm font-medium rounded-full text-slate-500 transition-all hover:text-slate-800" onclick="switchTab('conv')">Conv</button>
@@ -86,7 +89,7 @@
         </div>
 
         <!-- ディスプレイ部分 (現在の入力と結果) -->
-        <div class="shrink-0 flex flex-col justify-end px-6 pb-4 pt-4 gap-1 border-t border-slate-100 bg-slate-50/90 backdrop-blur-sm z-10">
+        <div class="shrink-0 flex flex-col justify-end px-6 pb-3 pt-3 gap-1 border-t border-slate-100 bg-slate-50/90 backdrop-blur-sm z-10">
             <!-- 計算式入力欄 (編集可能) -->
             <input type="text" id="formula-input" 
                 class="w-full text-3xl md:text-4xl font-light text-right outline-none bg-transparent text-slate-500 no-scrollbar" 
@@ -97,46 +100,46 @@
             </div>
         </div>
 
-        <!-- キーパッド部分 (丸型ボタン・モノトーン) -->
-        <div class="px-6 pb-10 shrink-0 relative z-10 bg-slate-50">
-            <div class="grid grid-cols-4 gap-3 max-w-[340px] mx-auto place-items-center">
+        <!-- キーパッド部分 (下部のセーフエリアを確保し、ボタンサイズを微調整) -->
+        <div class="px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shrink-0 relative z-10 bg-slate-50">
+            <div class="grid grid-cols-4 gap-2.5 max-w-[340px] mx-auto place-items-center">
                 <!-- Row 1 -->
-                <button id="btn-clear" class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-200 text-slate-600 text-xl font-medium flex items-center justify-center shadow-sm" onclick="clearAll()">AC</button>
-                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-200 text-slate-600 text-xl font-medium flex items-center justify-center shadow-sm" onclick="typeChar('(')">(</button>
-                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-200 text-slate-600 text-xl font-medium flex items-center justify-center shadow-sm" onclick="typeChar(')')">)</button>
-                <button class="btn-press btn-op w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-300 text-slate-700 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('÷')">÷</button>
+                <button id="btn-clear" class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-slate-200 text-slate-600 text-xl font-medium flex items-center justify-center shadow-sm" onclick="clearAll()">AC</button>
+                <button class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-slate-200 text-slate-600 text-xl font-medium flex items-center justify-center shadow-sm" onclick="typeChar('(')">(</button>
+                <button class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-slate-200 text-slate-600 text-xl font-medium flex items-center justify-center shadow-sm" onclick="typeChar(')')">)</button>
+                <button class="btn-press btn-op w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-slate-300 text-slate-700 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('÷')">÷</button>
                 
                 <!-- Row 2 -->
-                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('7')">7</button>
-                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('8')">8</button>
-                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('9')">9</button>
-                <button class="btn-press btn-op w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-300 text-slate-700 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('×')">×</button>
+                <button class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('7')">7</button>
+                <button class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('8')">8</button>
+                <button class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('9')">9</button>
+                <button class="btn-press btn-op w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-slate-300 text-slate-700 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('×')">×</button>
                 
                 <!-- Row 3 -->
-                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('4')">4</button>
-                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('5')">5</button>
-                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('6')">6</button>
-                <button class="btn-press btn-op w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-300 text-slate-700 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('-')">−</button>
+                <button class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('4')">4</button>
+                <button class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('5')">5</button>
+                <button class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('6')">6</button>
+                <button class="btn-press btn-op w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-slate-300 text-slate-700 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('-')">−</button>
                 
                 <!-- Row 4 -->
-                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('1')">1</button>
-                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('2')">2</button>
-                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('3')">3</button>
-                <button class="btn-press btn-op w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-300 text-slate-700 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('+')">+</button>
+                <button class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('1')">1</button>
+                <button class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('2')">2</button>
+                <button class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('3')">3</button>
+                <button class="btn-press btn-op w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-slate-300 text-slate-700 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('+')">+</button>
                 
                 <!-- Row 5 -->
-                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('0')">0</button>
-                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('.')">.</button>
-                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-200 text-slate-600 text-xl font-medium flex items-center justify-center shadow-sm" onclick="backspace()">
+                <button class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('0')">0</button>
+                <button class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('.')">.</button>
+                <button class="btn-press w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-slate-200 text-slate-600 text-xl font-medium flex items-center justify-center shadow-sm" onclick="backspace()">
                     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
                 </button>
-                <button class="btn-press btn-eq w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-800 text-white shadow-md text-4xl font-light flex items-center justify-center" onclick="applyResult()">=</button>
+                <button class="btn-press btn-eq w-[16vw] h-[16vw] max-w-[68px] max-h-[68px] rounded-full bg-slate-800 text-white shadow-md text-4xl font-light flex items-center justify-center" onclick="applyResult()">=</button>
             </div>
         </div>
     </div>
 
     <!-- ==================== 単位変換ビュー ==================== -->
-    <div id="view-conv" class="hidden flex-col flex-1 w-full max-w-md mx-auto px-6 overflow-y-auto pb-10 no-scrollbar">
+    <div id="view-conv" class="hidden flex-col flex-1 w-full max-w-md mx-auto px-6 overflow-y-auto pb-[calc(2rem+env(safe-area-inset-bottom))] no-scrollbar">
         <p class="text-xs text-slate-400 mb-6 mt-2 text-center">Result is auto-filled</p>
 
         <div class="flex flex-col gap-5">
