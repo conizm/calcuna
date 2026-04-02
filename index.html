@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#F8FAFC">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Favicon & App Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="calcuna_logo_favi_maru.png">
+    <link rel="apple-touch-icon" href="calcuna_logo_favi">
+    
+    <!-- OGP (Open Graph Protocol) -->
+    <meta property="og:title" content="calcuna">
+    <meta property="og:description" content="A minimal, quiet calculator and converter.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://conizm.cc/calcuna/">
+    <meta property="og:image" content="https://conizm.cc/calcuna/calcuna_logo_ogp">
+
+    <title>calcuna</title>
+    
+    <!-- Tailwind CSS (CDN) for minimal, beautiful UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* ネイティブアプリのような挙動にするための設定 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none; /* スワイプでのリロード防止 */
+            touch-action: pan-y; /* 縦スクロールは許可、横はスワイプ用に制御 */
+        }
+        
+        /* 入力欄のカスタマイズ（モノトーン） */
+        input[type="text"], input[type="number"] {
+            caret-color: #334155; /* カーソルの色（スレート） */
+        }
+        input[type="text"]::placeholder {
+            color: #cbd5e1;
+        }
+        
+        /* スクロールバー非表示 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* 押下時のアニメーション */
+        .btn-press {
+            transition: transform 0.05s ease, background-color 0.15s ease;
+        }
+        .btn-press:active {
+            transform: scale(0.9);
+            background-color: #e2e8f0;
+        }
+        .btn-op:active {
+            background-color: #cbd5e1;
+        }
+        .btn-eq:active {
+            background-color: #0f172a;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen w-screen flex flex-col overflow-hidden selection:bg-slate-200">
+
+    <!-- タブメニュー -->
+    <div class="flex justify-center pt-10 pb-4 px-6 shrink-0 bg-slate-50">
+        <div class="bg-slate-200/70 p-1 rounded-full flex gap-1 w-full max-w-sm">
+            <button id="tab-calc" class="flex-1 py-2 text-sm font-medium rounded-full bg-white shadow-sm transition-all text-slate-800" onclick="switchTab('calc')">Calc</button>
+            <button id="tab-conv" class="flex-1 py-2 text-sm font-medium rounded-full text-slate-500 transition-all hover:text-slate-800" onclick="switchTab('conv')">Conv</button>
+        </div>
+    </div>
+
+    <!-- ==================== 計算機ビュー ==================== -->
+    <div id="view-calc" class="flex flex-col flex-1 w-full max-w-md mx-auto transition-opacity duration-200 overflow-hidden">
+        
+        <!-- 履歴表示エリア -->
+        <div id="history-container" class="flex-1 overflow-y-auto px-6 pt-2 pb-2 flex flex-col gap-3 no-scrollbar items-end justify-start">
+            <!-- 履歴がここに追加されます -->
+        </div>
+
+        <!-- ディスプレイ部分 (現在の入力と結果) -->
+        <div class="shrink-0 flex flex-col justify-end px-6 pb-4 pt-4 gap-1 border-t border-slate-100 bg-slate-50/90 backdrop-blur-sm z-10">
+            <!-- 計算式入力欄 (編集可能) -->
+            <input type="text" id="formula-input" 
+                class="w-full text-3xl md:text-4xl font-light text-right outline-none bg-transparent text-slate-500 no-scrollbar" 
+                placeholder="0" autocomplete="off" spellcheck="false" inputmode="none">
+            
+            <!-- リアルタイム結果表示 (タップでコピー) -->
+            <div id="result-display" class="w-full text-4xl md:text-5xl font-semibold text-right text-slate-800 tracking-tight break-all h-12 flex items-center justify-end cursor-pointer active:opacity-50 transition-opacity" title="タップしてコピー">
+            </div>
+        </div>
+
+        <!-- キーパッド部分 (丸型ボタン・モノトーン) -->
+        <div class="px-6 pb-10 shrink-0 relative z-10 bg-slate-50">
+            <div class="grid grid-cols-4 gap-3 max-w-[340px] mx-auto place-items-center">
+                <!-- Row 1 -->
+                <button id="btn-clear" class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-200 text-slate-600 text-xl font-medium flex items-center justify-center shadow-sm" onclick="clearAll()">AC</button>
+                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-200 text-slate-600 text-xl font-medium flex items-center justify-center shadow-sm" onclick="typeChar('(')">(</button>
+                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-200 text-slate-600 text-xl font-medium flex items-center justify-center shadow-sm" onclick="typeChar(')')">)</button>
+                <button class="btn-press btn-op w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-300 text-slate-700 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('÷')">÷</button>
+                
+                <!-- Row 2 -->
+                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('7')">7</button>
+                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('8')">8</button>
+                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('9')">9</button>
+                <button class="btn-press btn-op w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-300 text-slate-700 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('×')">×</button>
+                
+                <!-- Row 3 -->
+                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('4')">4</button>
+                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('5')">5</button>
+                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('6')">6</button>
+                <button class="btn-press btn-op w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-300 text-slate-700 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('-')">−</button>
+                
+                <!-- Row 4 -->
+                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('1')">1</button>
+                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('2')">2</button>
+                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('3')">3</button>
+                <button class="btn-press btn-op w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-300 text-slate-700 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('+')">+</button>
+                
+                <!-- Row 5 -->
+                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('0')">0</button>
+                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-white text-slate-800 text-3xl font-light flex items-center justify-center shadow-sm" onclick="typeChar('.')">.</button>
+                <button class="btn-press w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-200 text-slate-600 text-xl font-medium flex items-center justify-center shadow-sm" onclick="backspace()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
+                </button>
+                <button class="btn-press btn-eq w-[17vw] h-[17vw] max-w-[72px] max-h-[72px] rounded-full bg-slate-800 text-white shadow-md text-4xl font-light flex items-center justify-center" onclick="applyResult()">=</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 単位変換ビュー ==================== -->
+    <div id="view-conv" class="hidden flex-col flex-1 w-full max-w-md mx-auto px-6 overflow-y-auto pb-10 no-scrollbar">
+        <p class="text-xs text-slate-400 mb-6 mt-2 text-center">Result is auto-filled</p>
+
+        <div class="flex flex-col gap-5">
+            <!-- 為替 (Currency) -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="text-xs font-bold text-slate-400 tracking-wider uppercase">Currency</div>
+                    <div class="flex items-center gap-1 text-xs text-slate-500">
+                        <span>1</span>
+                        <input type="text" id="conv-curr1-name" class="w-10 bg-transparent text-center font-semibold outline-none focus:text-slate-800 uppercase" value="USD" maxlength="3" oninput="updateCurrencySettings()">
+                        <span>=</span>
+                        <input type="number" id="conv-rate" class="w-16 bg-slate-50 border border-slate-200 rounded px-1 py-0.5 text-right outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all text-slate-700" value="150" oninput="updateCurrencySettings()">
+                        <input type="text" id="conv-curr2-name" class="w-10 bg-transparent text-center font-semibold outline-none focus:text-slate-800 uppercase" value="JPY" maxlength="3" oninput="updateCurrencySettings()">
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="flex-1 relative">
+                        <input type="number" id="conv-usd" class="w-full bg-slate-50 rounded-xl px-3 py-3 text-lg font-medium outline-none focus:ring-2 focus:ring-slate-200 transition-all text-right pr-12" oninput="convert('currency', 'usd')">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium uppercase" id="label-curr1">USD</span>
+                    </div>
+                    <div class="text-slate-300 font-light">⇌</div>
+                    <div class="flex-1 relative">
+                        <input type="number" id="conv-jpy" class="w-full bg-slate-50 rounded-xl px-3 py-3 text-lg font-medium outline-none focus:ring-2 focus:ring-slate-200 transition-all text-right pr-12" oninput="convert('currency', 'jpy')">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium uppercase" id="label-curr2">JPY</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 温度 (Temperature) -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                <div class="text-xs font-bold text-slate-400 mb-3 tracking-wider uppercase">Temperature</div>
+                <div class="flex items-center gap-2">
+                    <div class="flex-1 relative">
+                        <input type="number" id="conv-c" class="w-full bg-slate-50 rounded-xl px-3 py-3 text-lg font-medium outline-none focus:ring-2 focus:ring-slate-200 transition-all text-right pr-10" oninput="convert('temp', 'c')">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">°C</span>
+                    </div>
+                    <div class="text-slate-300 font-light">⇌</div>
+                    <div class="flex-1 relative">
+                        <input type="number" id="conv-f" class="w-full bg-slate-50 rounded-xl px-3 py-3 text-lg font-medium outline-none focus:ring-2 focus:ring-slate-200 transition-all text-right pr-10" oninput="convert('temp', 'f')">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">°F</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 重さ (Weight) -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                <div class="text-xs font-bold text-slate-400 mb-3 tracking-wider uppercase">Weight</div>
+                <div class="flex items-center gap-2">
+                    <div class="flex-1 relative">
+                        <input type="number" id="conv-g" class="w-full bg-slate-50 rounded-xl px-3 py-3 text-lg font-medium outline-none focus:ring-2 focus:ring-slate-200 transition-all text-right pr-10" oninput="convert('weight', 'g')">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">g</span>
+                    </div>
+                    <div class="text-slate-300 font-light">⇌</div>
+                    <div class="flex-1 relative">
+                        <input type="number" id="conv-lbs" class="w-full bg-slate-50 rounded-xl px-3 py-3 text-lg font-medium outline-none focus:ring-2 focus:ring-slate-200 transition-all text-right pr-10" oninput="convert('weight', 'lbs')">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">lbs</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 短い長さ (Length) -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                <div class="text-xs font-bold text-slate-400 mb-3 tracking-wider uppercase">Length</div>
+                <div class="flex items-center gap-2">
+                    <div class="flex-1 relative">
+                        <input type="number" id="conv-cm" class="w-full bg-slate-50 rounded-xl px-3 py-3 text-lg font-medium outline-none focus:ring-2 focus:ring-slate-200 transition-all text-right pr-10" oninput="convert('short_length', 'cm')">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">cm</span>
+                    </div>
+                    <div class="text-slate-300 font-light">⇌</div>
+                    <div class="flex-1 relative">
+                        <input type="number" id="conv-in" class="w-full bg-slate-50 rounded-xl px-3 py-3 text-lg font-medium outline-none focus:ring-2 focus:ring-slate-200 transition-all text-right pr-10" oninput="convert('short_length', 'in')">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">in</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 距離 (Distance) -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                <div class="text-xs font-bold text-slate-400 mb-3 tracking-wider uppercase">Distance</div>
+                <div class="flex items-center gap-2">
+                    <div class="flex-1 relative">
+                        <input type="number" id="conv-km" class="w-full bg-slate-50 rounded-xl px-3 py-3 text-lg font-medium outline-none focus:ring-2 focus:ring-slate-200 transition-all text-right pr-12" oninput="convert('length', 'km')">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">km</span>
+                    </div>
+                    <div class="text-slate-300 font-light">⇌</div>
+                    <div class="flex-1 relative">
+                        <input type="number" id="conv-mi" class="w-full bg-slate-50 rounded-xl px-3 py-3 text-lg font-medium outline-none focus:ring-2 focus:ring-slate-200 transition-all text-right pr-10" oninput="convert('length', 'mi')">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">mi</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 容量 (Volume) -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                <div class="text-xs font-bold text-slate-400 mb-3 tracking-wider uppercase">Volume</div>
+                <div class="flex items-center gap-2">
+                    <div class="flex-1 relative">
+                        <input type="number" id="conv-ml" class="w-full bg-slate-50 rounded-xl px-3 py-3 text-lg font-medium outline-none focus:ring-2 focus:ring-slate-200 transition-all text-right pr-10" oninput="convert('volume', 'ml')">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">ml</span>
+                    </div>
+                    <div class="text-slate-300 font-light">⇌</div>
+                    <div class="flex-1 relative">
+                        <input type="number" id="conv-oz" class="w-full bg-slate-50 rounded-xl px-3 py-3 text-lg font-medium outline-none focus:ring-2 focus:ring-slate-200 transition-all text-right pr-10" oninput="convert('volume', 'oz')">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">fl oz</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 面積 (Area) -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                <div class="text-xs font-bold text-slate-400 mb-3 tracking-wider uppercase">Area</div>
+                <div class="flex items-center gap-2">
+                    <div class="flex-1 relative">
+                        <input type="number" id="conv-m2" class="w-full bg-slate-50 rounded-xl px-3 py-3 text-lg font-medium outline-none focus:ring-2 focus:ring-slate-200 transition-all text-right pr-12" oninput="convert('area', 'm2')">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">m²</span>
+                    </div>
+                    <div class="text-slate-300 font-light">⇌</div>
+                    <div class="flex-1 relative">
+                        <input type="number" id="conv-ft2" class="w-full bg-slate-50 rounded-xl px-3 py-3 text-lg font-medium outline-none focus:ring-2 focus:ring-slate-200 transition-all text-right pr-12" oninput="convert('area', 'ft2')">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">ft²</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-5 py-2.5 rounded-full text-sm font-medium opacity-0 transition-opacity duration-300 pointer-events-none z-50 shadow-lg">
+        Copied
+    </div>
+
+    <!-- JavaScript ロジック -->
+    <script>
+        const inputField = document.getElementById('formula-input');
+        const resultDisplay = document.getElementById('result-display');
+        const historyContainer = document.getElementById('history-container');
+        const btnClear = document.getElementById('btn-clear');
+        let currentValidResult = ""; 
+        let historyData = [];
+        let currentTab = 'calc';
+
+        // ===== 触覚フィードバック (Haptic) =====
+        function haptic() {
+            if (navigator.vibrate) {
+                navigator.vibrate(10); // 10msの微小な振動 (主にAndroid向け)
+            }
+        }
+
+        // ===== 起動時の処理 =====
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                const storedHistory = localStorage.getItem('calcuna_history');
+                if (storedHistory) {
+                    historyData = JSON.parse(storedHistory);
+                    historyData.forEach(item => renderHistoryItem(item.formula, item.result));
+                }
+                const storedRate = localStorage.getItem('calcuna_rate');
+                if (storedRate) document.getElementById('conv-rate').value = storedRate;
+                const storedCurr1 = localStorage.getItem('calcuna_curr1');
+                if (storedCurr1) {
+                    document.getElementById('conv-curr1-name').value = storedCurr1;
+                    document.getElementById('label-curr1').textContent = storedCurr1;
+                }
+                const storedCurr2 = localStorage.getItem('calcuna_curr2');
+                if (storedCurr2) {
+                    document.getElementById('conv-curr2-name').value = storedCurr2;
+                    document.getElementById('label-curr2').textContent = storedCurr2;
+                }
+            } catch (e) {
+                console.error("Failed to load local data", e);
+            }
+        });
+
+        // 初期フォーカス
+        inputField.addEventListener('click', () => {
+            inputField.focus();
+        });
+
+        inputField.addEventListener('input', calculateRealTime);
+        inputField.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') applyResult();
+        });
+
+        // カスタムキーボード
+        function typeChar(char) {
+            haptic();
+            inputField.focus();
+            const start = inputField.selectionStart;
+            const end = inputField.selectionEnd;
+            const val = inputField.value;
+            
+            inputField.value = val.substring(0, start) + char + val.substring(end);
+            inputField.selectionStart = inputField.selectionEnd = start + char.length;
+            
+            inputField.scrollLeft = inputField.scrollWidth;
+            calculateRealTime();
+        }
+
+        function backspace() {
+            haptic();
+            inputField.focus();
+            const start = inputField.selectionStart;
+            const end = inputField.selectionEnd;
+            const val = inputField.value;
+
+            if (start === end && start > 0) {
+                inputField.value = val.substring(0, start - 1) + val.substring(end);
+                inputField.selectionStart = inputField.selectionEnd = start - 1;
+            } else if (start !== end) {
+                inputField.value = val.substring(0, start) + val.substring(end);
+                inputField.selectionStart = inputField.selectionEnd = start;
+            }
+            calculateRealTime();
+        }
+
+        function clearAll() {
+            haptic();
+            if (inputField.value === '') {
+                historyContainer.innerHTML = '';
+                historyData = [];
+                localStorage.removeItem('calcuna_history');
+                showToast('History cleared');
+            } else {
+                inputField.value = '';
+                resultDisplay.textContent = '';
+                currentValidResult = '';
+            }
+            updateClearButton();
+            inputField.focus();
+        }
+
+        function updateClearButton() {
+            btnClear.textContent = inputField.value === '' ? 'AC' : 'C';
+        }
+
+        // リアルタイム計算ロジック (+ カッコの自動補完)
+        function calculateRealTime() {
+            updateClearButton();
+            let expression = inputField.value;
+            if (expression.trim() === '') {
+                resultDisplay.textContent = '';
+                return;
+            }
+
+            try {
+                let evalString = expression
+                    .replace(/×/g, '*')
+                    .replace(/÷/g, '/')
+                    .replace(/−/g, '-');
+                
+                if (/[^0-9+\-*/().\s]/.test(evalString)) return; 
+
+                // カッコが閉じられていない場合、プレビュー計算用に見えないところで補完
+                const openP = (evalString.match(/\(/g) || []).length;
+                const closeP = (evalString.match(/\)/g) || []).length;
+                if (openP > closeP) {
+                    evalString += ')'.repeat(openP - closeP);
+                }
+
+                const result = new Function('"use strict"; return (' + evalString + ')')();
+                
+                if (result !== undefined && !Number.isNaN(result) && result !== Infinity && result !== -Infinity) {
+                    const rounded = Math.round(result * 100000000) / 100000000;
+                    resultDisplay.textContent = formatNumber(rounded);
+                    currentValidResult = rounded;
+                } else {
+                    resultDisplay.textContent = "";
+                    currentValidResult = "";
+                }
+            } catch (error) {
+                resultDisplay.textContent = "";
+                currentValidResult = "";
+            }
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('en-US', {
+                maximumFractionDigits: 8
+            }).format(num);
+        }
+
+        // =ボタンを押したとき（計算結果の確定とカッコの実際の補完）
+        function applyResult() {
+            haptic();
+            let expression = inputField.value;
+            
+            // 実際の入力欄のカッコも補完する
+            const openP = (expression.match(/\(/g) || []).length;
+            const closeP = (expression.match(/\)/g) || []).length;
+            if (openP > closeP) {
+                expression += ')'.repeat(openP - closeP);
+                inputField.value = expression; 
+            }
+            
+            if (currentValidResult !== "" && expression !== currentValidResult.toString()) {
+                historyData.push({ formula: expression, result: currentValidResult });
+                localStorage.setItem('calcuna_history', JSON.stringify(historyData));
+                renderHistoryItem(expression, currentValidResult);
+                
+                inputField.value = currentValidResult;
+                resultDisplay.textContent = "";
+                
+                inputField.focus();
+                inputField.selectionStart = inputField.selectionEnd = inputField.value.length;
+                updateClearButton();
+            }
+        }
+
+        function renderHistoryItem(formula, result) {
+            const item = document.createElement('div');
+            item.className = "text-right cursor-pointer p-2 -mr-2 rounded-xl active:bg-slate-200/60 transition-colors w-full";
+            item.title = "Tap to load & copy";
+            
+            item.onclick = () => {
+                haptic();
+                inputField.value = formula;
+                calculateRealTime();
+                inputField.focus();
+                inputField.scrollLeft = inputField.scrollWidth;
+                copyToClipboard(result.toString());
+            };
+            
+            item.innerHTML = `
+                <div class="text-slate-400 text-sm md:text-base font-light break-all">${formula}</div>
+                <div class="text-slate-700 text-2xl font-medium break-all">=${formatNumber(result)}</div>
+            `;
+            
+            historyContainer.appendChild(item);
+            historyContainer.scrollTop = historyContainer.scrollHeight;
+        }
+
+        // クリップボードとトースト
+        let toastTimeout;
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.remove('opacity-0');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 2000);
+        }
+
+        function copyToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Copied');
+            } catch (err) {
+                console.error("Copy failed", err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        resultDisplay.addEventListener('click', () => {
+            if (currentValidResult !== "") {
+                haptic();
+                copyToClipboard(currentValidResult.toString());
+            }
+        });
+
+        // ==================== スワイプ ＆ タブ切り替え ====================
+        const tabCalc = document.getElementById('tab-calc');
+        const tabConv = document.getElementById('tab-conv');
+        const viewCalc = document.getElementById('view-calc');
+        const viewConv = document.getElementById('view-conv');
+
+        // スワイプ判定用
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, {passive: true});
+
+        document.addEventListener('touchend', e => {
+            const touchEndX = e.changedTouches[0].screenX;
+            const touchEndY = e.changedTouches[0].screenY;
+            const diffX = touchStartX - touchEndX;
+            const diffY = touchStartY - touchEndY;
+            
+            // 縦スクロールの方が大きい場合はスワイプと判定しない
+            if (Math.abs(diffY) > Math.abs(diffX)) return;
+            
+            // 横方向に一定以上スワイプされたらタブ切り替え
+            if (Math.abs(diffX) > 60) {
+                if (diffX > 0 && currentTab === 'calc') switchTab('conv'); // 左スワイプ -> Conv
+                else if (diffX < 0 && currentTab === 'conv') switchTab('calc'); // 右スワイプ -> Calc
+            }
+        }, {passive: true});
+
+        function switchTab(tab) {
+            if (currentTab === tab) return;
+            currentTab = tab;
+            haptic();
+
+            if (tab === 'calc') {
+                tabCalc.className = "flex-1 py-2 text-sm font-medium rounded-full bg-white shadow-sm transition-all text-slate-800";
+                tabConv.className = "flex-1 py-2 text-sm font-medium rounded-full text-slate-500 transition-all hover:text-slate-800";
+                viewCalc.classList.remove('hidden');
+                viewCalc.classList.add('flex');
+                viewConv.classList.add('hidden');
+                viewConv.classList.remove('flex');
+            } else {
+                tabConv.className = "flex-1 py-2 text-sm font-medium rounded-full bg-white shadow-sm transition-all text-slate-800";
+                tabCalc.className = "flex-1 py-2 text-sm font-medium rounded-full text-slate-500 transition-all hover:text-slate-800";
+                viewConv.classList.remove('hidden');
+                viewConv.classList.add('flex');
+                viewCalc.classList.add('hidden');
+                viewCalc.classList.remove('flex');
+
+                if (currentValidResult !== "") {
+                    document.getElementById('conv-usd').value = currentValidResult;
+                    document.getElementById('conv-c').value = currentValidResult;
+                    document.getElementById('conv-g').value = currentValidResult;
+                    document.getElementById('conv-cm').value = currentValidResult;
+                    document.getElementById('conv-km').value = currentValidResult;
+                    document.getElementById('conv-ml').value = currentValidResult;
+                    document.getElementById('conv-m2').value = currentValidResult;
+                    
+                    convert('currency', 'usd');
+                    convert('temp', 'c');
+                    convert('weight', 'g');
+                    convert('short_length', 'cm');
+                    convert('length', 'km');
+                    convert('volume', 'ml');
+                    convert('area', 'm2');
+                }
+            }
+        }
+
+        // ==================== 単位変換ロジック ====================
+        function updateCurrencySettings() {
+            const rate = document.getElementById('conv-rate').value;
+            const curr1 = document.getElementById('conv-curr1-name').value || 'USD';
+            const curr2 = document.getElementById('conv-curr2-name').value || 'JPY';
+            
+            document.getElementById('label-curr1').textContent = curr1;
+            document.getElementById('label-curr2').textContent = curr2;
+
+            localStorage.setItem('calcuna_rate', rate);
+            localStorage.setItem('calcuna_curr1', curr1);
+            localStorage.setItem('calcuna_curr2', curr2);
+            
+            convert('currency', 'usd');
+        }
+
+        function convert(type, source) {
+            const precision = 10000; 
+            const round = (val, prec = precision) => Math.round(val * prec) / prec;
+
+            if (type === 'currency') {
+                const rate = parseFloat(document.getElementById('conv-rate').value) || 150;
+                const usdIn = document.getElementById('conv-usd'), jpyIn = document.getElementById('conv-jpy');
+                if (source === 'usd') jpyIn.value = !isNaN(parseFloat(usdIn.value)) ? round(parseFloat(usdIn.value) * rate, 100) : '';
+                else usdIn.value = !isNaN(parseFloat(jpyIn.value)) ? round(parseFloat(jpyIn.value) / rate, 100) : '';
+            }
+            else if (type === 'temp') {
+                const cIn = document.getElementById('conv-c'), fIn = document.getElementById('conv-f');
+                if (source === 'c') fIn.value = !isNaN(parseFloat(cIn.value)) ? round((parseFloat(cIn.value) * 9/5) + 32, 100) : '';
+                else cIn.value = !isNaN(parseFloat(fIn.value)) ? round((parseFloat(fIn.value) - 32) * 5/9, 100) : '';
+            }
+            else if (type === 'weight') {
+                const gIn = document.getElementById('conv-g'), lbsIn = document.getElementById('conv-lbs');
+                if (source === 'g') lbsIn.value = !isNaN(parseFloat(gIn.value)) ? round(parseFloat(gIn.value) * 0.00220462) : '';
+                else gIn.value = !isNaN(parseFloat(lbsIn.value)) ? round(parseFloat(lbsIn.value) * 453.592) : '';
+            }
+            else if (type === 'short_length') {
+                const cmIn = document.getElementById('conv-cm'), inIn = document.getElementById('conv-in');
+                if (source === 'cm') inIn.value = !isNaN(parseFloat(cmIn.value)) ? round(parseFloat(cmIn.value) * 0.393701) : '';
+                else cmIn.value = !isNaN(parseFloat(inIn.value)) ? round(parseFloat(inIn.value) * 2.54) : '';
+            }
+            else if (type === 'length') {
+                const kmIn = document.getElementById('conv-km'), miIn = document.getElementById('conv-mi');
+                if (source === 'km') miIn.value = !isNaN(parseFloat(kmIn.value)) ? round(parseFloat(kmIn.value) * 0.621371) : '';
+                else kmIn.value = !isNaN(parseFloat(miIn.value)) ? round(parseFloat(miIn.value) * 1.60934) : '';
+            }
+            else if (type === 'volume') {
+                const mlIn = document.getElementById('conv-ml'), ozIn = document.getElementById('conv-oz');
+                if (source === 'ml') ozIn.value = !isNaN(parseFloat(mlIn.value)) ? round(parseFloat(mlIn.value) * 0.033814) : '';
+                else mlIn.value = !isNaN(parseFloat(ozIn.value)) ? round(parseFloat(ozIn.value) * 29.5735) : '';
+            }
+            else if (type === 'area') {
+                const m2In = document.getElementById('conv-m2'), ftIn = document.getElementById('conv-ft2');
+                if (source === 'm2') ftIn.value = !isNaN(parseFloat(m2In.value)) ? round(parseFloat(m2In.value) * 10.7639) : '';
+                else m2In.value = !isNaN(parseFloat(ftIn.value)) ? round(parseFloat(ftIn.value) * 0.092903) : '';
+            }
+        }
+
+        // ==================== 完全オフライン対応 (外部Service Worker登録) ====================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('SW registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
